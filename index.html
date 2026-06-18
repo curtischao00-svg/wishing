@@ -1,435 +1,54 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>🌊 许愿池</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  :root {
-    --bg: #f7f7f5; --surface: #ffffff; --surface2: #f0efeb;
-    --border: rgba(0,0,0,0.10); --border2: rgba(0,0,0,0.18);
-    --text: #1a1a18; --text2: #6b6a66; --text3: #9e9d99;
-    --green: #1D9E75; --green-bg: #EAF3DE; --green-text: #3B6D11;
-    --amber-bg: #FAEEDA; --amber-text: #854F0B;
-    --red-bg: #FAECE7; --red-text: #993C1D;
-    --radius: 12px; --radius-sm: 8px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1c1c1a; --surface: #2a2a27; --surface2: #222220;
-      --border: rgba(255,255,255,0.10); --border2: rgba(255,255,255,0.18);
-      --text: #f0efe9; --text2: #9e9d99; --text3: #6b6a66;
-      --green-bg: #0a2e1e; --green-text: #5DCAA5;
-      --amber-bg: #2e1e04; --amber-text: #FAC775;
-      --red-bg: #2e0f07; --red-text: #F0997B;
-    }
-  }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; min-height: 100vh; }
-  .app { max-width: 600px; margin: 0 auto; padding: 0 0 80px; }
-  .topbar { position: sticky; top: 0; z-index: 100; background: var(--bg); padding: 16px 16px 0; }
-  .topbar-inner { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .app-title { font-size: 20px; font-weight: 600; }
-  .btn-add-top { background: var(--text); color: var(--surface); border: none; border-radius: 20px; padding: 8px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  .btn-add-top:active { opacity: 0.8; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 16px 16px; }
-  .stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
-  .stat-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
-  .stat-value { font-size: 18px; font-weight: 600; }
-  .progress-wrap { margin: 0 16px 12px; }
-  .progress-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
-  .progress-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease; }
-  .filter-tabs { display: flex; gap: 6px; padding: 0 16px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
-  .filter-tabs::-webkit-scrollbar { display: none; }
-  .ftab { background: none; border: 0.5px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text2); cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-  .ftab.active { background: var(--text); color: var(--surface); border-color: var(--text); }
-  .sort-bar { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; margin-bottom: 10px; }
-  .sort-count { font-size: 13px; color: var(--text2); }
-  .sort-select { background: none; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 12px; color: var(--text2); cursor: pointer; }
-  .wish-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
-  .wish-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: border-color 0.15s; user-select: none; }
-  .wish-card:active { opacity: 0.85; }
-  .wish-card.done { opacity: 0.55; }
-  .check-btn { width: 22px; height: 22px; border: 1.5px solid var(--border2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: all 0.2s; }
-  .check-btn.checked { background: var(--green); border-color: var(--green); }
-  .check-btn svg { display: none; }
-  .check-btn.checked svg { display: block; }
-  .wish-body { flex: 1; min-width: 0; }
-  .wish-name { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
-  .wish-card.done .wish-name { text-decoration: line-through; color: var(--text2); }
-  .wish-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; align-items: center; }
-  .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
-  .badge-high { background: var(--red-bg); color: var(--red-text); }
-  .badge-mid { background: var(--amber-bg); color: var(--amber-text); }
-  .badge-low { background: var(--green-bg); color: var(--green-text); }
-  .badge-cat { background: var(--surface2); color: var(--text2); }
-  .badge-for-self { background: #E6F1FB; color: #185FA5; }
-  .badge-for-parents { background: #EEEDFE; color: #534AB7; }
-  .badge-for-ma { background: #FBEAF0; color: #993556; }
-  @media (prefers-color-scheme: dark) {
-    .badge-for-self { background: #042C53; color: #85B7EB; }
-    .badge-for-parents { background: #26215C; color: #AFA9EC; }
-    .badge-for-ma { background: #4B1528; color: #ED93B1; }
-  }
-  .wish-meta { font-size: 12px; color: var(--text3); }
-  .wish-note { font-size: 12px; color: var(--text2); margin-top: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .wish-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
-  .wish-price { font-size: 16px; font-weight: 600; }
-  .action-btns { display: flex; gap: 6px; }
-  .icon-btn { background: none; border: 0.5px solid var(--border); border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); }
-  .icon-btn:active { background: var(--surface2); }
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
-  .empty-icon { font-size: 40px; margin-bottom: 12px; }
-  .empty-text { font-size: 14px; }
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
-  .overlay.show { display: flex; }
-  @media (min-width: 500px) {
-    .overlay { align-items: center; }
-    .modal { border-radius: var(--radius) !important; max-width: 420px; }
-  }
-  .modal { background: var(--surface); width: 100%; max-width: 600px; border-radius: var(--radius) var(--radius) 0 0; padding: 20px 16px 32px; max-height: 90vh; overflow-y: auto; }
-  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-  .close-btn { background: var(--surface2); border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 16px; cursor: pointer; color: var(--text2); display: flex; align-items: center; justify-content: center; }
-  .form-group { margin-bottom: 14px; }
-  .form-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%; background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--radius-sm);
-    padding: 10px 12px; font-size: 15px; color: var(--text); outline: none;
-    -webkit-appearance: none; font-family: inherit;
-  }
-  .form-group input:focus, .form-group select:focus { border-color: var(--border2); }
-  .form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .btn-submit { width: 100%; background: var(--text); color: var(--surface); border: none; border-radius: var(--radius-sm); padding: 14px; font-size: 16px; font-weight: 500; cursor: pointer; margin-top: 4px; }
-  .btn-submit:active { opacity: 0.8; }
-  .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--surface); padding: 10px 18px; border-radius: 20px; font-size: 14px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
-  .toast.show { opacity: 1; }
-</style>
-</head>
-<body>
+#!/usr/bin/env python3
+"""
+许愿池 — 本地局域网服务器
+运行后，在同一 WiFi 下的手机和电脑都可以访问。
+"""
 
-<div class="app">
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="app-title">🌊 许愿池</div>
-      <button class="btn-add-top" onclick="openModal()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        添加心愿
-      </button>
-    </div>
+import http.server
+import socket
+import os
+import sys
 
-    <div class="stats">
-      <div class="stat"><div class="stat-label">心愿总数</div><div class="stat-value" id="stat-total">0</div></div>
-      <div class="stat"><div class="stat-label">待购预算</div><div class="stat-value" id="stat-budget">¥0</div></div>
-      <div class="stat"><div class="stat-label">已实现</div><div class="stat-value" id="stat-done">0</div></div>
-    </div>
+PORT = 8888
+DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
-    <div class="progress-wrap">
-      <div class="progress-row"><span>实现进度</span><span id="stat-pct">0%</span></div>
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-    </div>
 
-    <div class="filter-tabs" id="filter-tabs">
-      <button class="ftab active" data-filter="all">全部</button>
-      <button class="ftab" data-filter="pending">未实现</button>
-      <button class="ftab" data-filter="done">已实现</button>
-      <div style="width:1px; background:var(--border); margin: 4px 2px; flex-shrink:0;"></div>
-      <button class="ftab" data-filter="for-self">给自己</button>
-      <button class="ftab" data-filter="for-parents">给父母</button>
-      <button class="ftab" data-filter="for-ma">给马女士</button>
-    </div>
-  </div>
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
-  <div class="sort-bar">
-    <div class="sort-count" id="sort-count"></div>
-    <select class="sort-select" id="sort-select" onchange="render()">
-      <option value="date-desc">最新添加</option>
-      <option value="price-desc">价格从高到低</option>
-      <option value="price-asc">价格从低到高</option>
-      <option value="priority">优先级</option>
-    </select>
-  </div>
 
-  <div class="wish-list" id="wish-list"></div>
-</div>
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=DIRECTORY, **kwargs)
 
-<!-- Modal -->
-<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
-  <div class="modal" id="modal">
-    <div class="modal-title">
-      <span id="modal-title-text">添加心愿</span>
-      <button class="close-btn" onclick="closeModal()">✕</button>
-    </div>
+    def log_message(self, format, *args):
+        # 简洁日志
+        print(f"  {self.address_string()} → {args[0]}")
 
-    <div class="form-group">
-      <label>商品名称 *</label>
-      <input id="f-name" type="text" placeholder="e.g. AirPods Max 深空灰" autocomplete="off" />
-    </div>
 
-    <div class="form-row2">
-      <div class="form-group">
-        <label>价格（¥）*</label>
-        <input id="f-price" type="number" placeholder="4999" min="0" inputmode="decimal" />
-      </div>
-      <div class="form-group">
-        <label>记录日期</label>
-        <input id="f-date" type="date" />
-      </div>
-    </div>
+if __name__ == "__main__":
+    local_ip = get_local_ip()
 
-    <div class="form-row2">
-      <div class="form-group">
-        <label>优先级</label>
-        <select id="f-priority">
-          <option value="high">🔥 高 — 很想要</option>
-          <option value="mid" selected>✨ 中 — 想要</option>
-          <option value="low">🌿 低 — 随缘</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>分类</label>
-        <select id="f-cat">
-          <option value="">不分类</option>
-          <option value="数码">数码</option>
-          <option value="衣物">衣物</option>
-          <option value="美妆">美妆</option>
-          <option value="书籍">书籍</option>
-          <option value="运动">运动</option>
-          <option value="家居">家居</option>
-          <option value="食品">食品</option>
-          <option value="旅行">旅行</option>
-          <option value="其他">其他</option>
-        </select>
-      </div>
-    </div>
+    print()
+    print("  🌊 许愿池已启动！")
+    print()
+    print(f"  本机访问：  http://localhost:{PORT}")
+    print(f"  手机访问：  http://{local_ip}:{PORT}")
+    print()
+    print("  按 Ctrl+C 停止服务器")
+    print()
 
-    <div class="form-group">
-      <label>买给谁</label>
-      <select id="f-for">
-        <option value="self">给自己 🙋</option>
-        <option value="parents">给父母 👨‍👩‍👦</option>
-        <option value="ma">给马女士 💝</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>备注</label>
-      <input id="f-note" type="text" placeholder="e.g. 等双十一，颜色选深空灰" autocomplete="off" />
-    </div>
-
-    <div class="form-group">
-      <label>链接（可选）</label>
-      <input id="f-link" type="url" placeholder="https://..." />
-    </div>
-
-    <button class="btn-submit" id="submit-btn" onclick="submitForm()">投入许愿池 🌊</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-const STORAGE_KEY = 'wishing_pool_v1';
-let wishes = [];
-let editingId = null;
-let currentFilter = 'all';
-let _nextId = 0;
-
-function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) wishes = JSON.parse(raw);
-  } catch(e) {}
-  if (!wishes.length) {
-    wishes = [
-      { id: 1, name: 'Sony WH-1000XM5 耳机', price: 2499, date: today(), priority: 'high', cat: '数码', for: 'self', note: '主要用来出行降噪', link: '', done: false, createdAt: Date.now() - 86400000*3 },
-      { id: 2, name: 'Kindle Scribe 电纸书', price: 2799, date: today(), priority: 'mid', cat: '数码', for: 'self', note: '想多读书', link: '', done: false, createdAt: Date.now() - 86400000 },
-      { id: 3, name: 'Lululemon 瑜伽裤', price: 780, date: today(), priority: 'low', cat: '运动', for: 'ma', note: '', link: '', done: true, createdAt: Date.now() - 86400000*7 },
-    ];
-    save();
-  }
-}
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(wishes)); }
-function today() { return new Date().toISOString().slice(0,10); }
-function nextId() {
-  if (!_nextId) _nextId = Math.max(0, ...wishes.map(w => w.id)) + 1;
-  return _nextId++;
-}
-
-const priorityOrder = { high: 0, mid: 1, low: 2 };
-const priorityLabel = { high: '高优先', mid: '中优先', low: '随缘' };
-const priorityClass = { high: 'badge-high', mid: 'badge-mid', low: 'badge-low' };
-const forLabel = { self: '给自己', parents: '给父母', ma: '给马女士' };
-const forClass = { self: 'badge-for-self', parents: 'badge-for-parents', ma: 'badge-for-ma' };
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function formatDate(d) {
-  if (!d) return '';
-  const [y,m,day] = d.split('-');
-  return y + '/' + m + '/' + day;
-}
-function formatPrice(n) {
-  if (n >= 10000) return '¥' + (n/10000).toFixed(1) + 'w';
-  return '¥' + n.toLocaleString('zh-CN');
-}
-function forBadge(f) {
-  if (!f) return '';
-  return '<span class="badge ' + (forClass[f]||'badge-cat') + '">' + (forLabel[f]||f) + '</span>';
-}
-
-function getFiltered() {
-  let list = wishes.filter(w => {
-    if (currentFilter === 'pending') return !w.done;
-    if (currentFilter === 'done') return w.done;
-    if (currentFilter === 'for-self') return w.for === 'self';
-    if (currentFilter === 'for-parents') return w.for === 'parents';
-    if (currentFilter === 'for-ma') return w.for === 'ma';
-    return true;
-  });
-  const sort = document.getElementById('sort-select').value;
-  list = [...list];
-  if (sort === 'price-desc') list.sort((a,b) => b.price - a.price);
-  else if (sort === 'price-asc') list.sort((a,b) => a.price - b.price);
-  else if (sort === 'priority') list.sort((a,b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-  else list.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
-  return list;
-}
-
-function render() {
-  const total = wishes.length;
-  const done = wishes.filter(w => w.done).length;
-  const budget = wishes.filter(w => !w.done).reduce((s,w) => s+w.price, 0);
-  const pct = total > 0 ? Math.round(done/total*100) : 0;
-  document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-done').textContent = done;
-  document.getElementById('stat-pct').textContent = pct + '%';
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('stat-budget').textContent = budget >= 10000 ? '¥' + (budget/10000).toFixed(1) + 'w' : '¥' + budget.toLocaleString('zh-CN');
-
-  const filtered = getFiltered();
-  document.getElementById('sort-count').textContent = filtered.length ? '共 ' + filtered.length + ' 个心愿' : '';
-
-  const list = document.getElementById('wish-list');
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🌊</div><div class="empty-text">' + (currentFilter === 'all' ? '许愿池还是空的，添加第一个心愿吧' : '没有符合条件的心愿') + '</div></div>';
-    return;
-  }
-
-  list.innerHTML = filtered.map(function(w) {
-    return '<div class="wish-card ' + (w.done ? 'done' : '') + '" data-id="' + w.id + '">' +
-      '<div class="check-btn ' + (w.done ? 'checked' : '') + '" onclick="toggleDone(' + w.id + ', event)">' +
-        '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-      '</div>' +
-      '<div class="wish-body" onclick="openEdit(' + w.id + ')">' +
-        '<div class="wish-name">' + esc(w.name) + '</div>' +
-        '<div class="wish-tags">' +
-          '<span class="badge ' + priorityClass[w.priority] + '">' + priorityLabel[w.priority] + '</span>' +
-          forBadge(w.for) +
-          (w.cat ? '<span class="badge badge-cat">' + esc(w.cat) + '</span>' : '') +
-        '</div>' +
-        (w.date ? '<div class="wish-meta">' + formatDate(w.date) + '</div>' : '') +
-        (w.note ? '<div class="wish-note">' + esc(w.note) + '</div>' : '') +
-      '</div>' +
-      '<div class="wish-right">' +
-        '<div class="wish-price">' + formatPrice(w.price) + '</div>' +
-        '<div class="action-btns">' +
-          (w.link ? '<button class="icon-btn" onclick="openLink(\'' + esc(w.link) + '\', event)" title="打开链接"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>' : '') +
-          '<button class="icon-btn" onclick="deleteWish(' + w.id + ', event)" title="删除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function toggleDone(id, e) {
-  e.stopPropagation();
-  const w = wishes.find(x => x.id === id);
-  if (w) { w.done = !w.done; save(); render(); toast(w.done ? '已实现 🎉' : '已取消实现'); }
-}
-function deleteWish(id, e) {
-  e.stopPropagation();
-  if (!confirm('确定删除这个心愿？')) return;
-  wishes = wishes.filter(x => x.id !== id);
-  save(); render(); toast('已删除');
-}
-function openLink(url, e) {
-  e.stopPropagation();
-  window.open(url, '_blank');
-}
-
-function openModal(id) {
-  editingId = id || null;
-  const w = id ? wishes.find(x => x.id === id) : null;
-  document.getElementById('modal-title-text').textContent = w ? '编辑心愿' : '添加心愿';
-  document.getElementById('submit-btn').textContent = w ? '保存修改' : '投入许愿池 🌊';
-  document.getElementById('f-name').value = w ? w.name : '';
-  document.getElementById('f-price').value = w ? w.price : '';
-  document.getElementById('f-date').value = w ? (w.date || today()) : today();
-  document.getElementById('f-priority').value = w ? w.priority : 'mid';
-  document.getElementById('f-cat').value = w ? (w.cat || '') : '';
-  document.getElementById('f-for').value = w ? (w.for || 'self') : 'self';
-  document.getElementById('f-note').value = w ? (w.note || '') : '';
-  document.getElementById('f-link').value = w ? (w.link || '') : '';
-  document.getElementById('overlay').classList.add('show');
-  setTimeout(function() { document.getElementById('f-name').focus(); }, 100);
-}
-function openEdit(id) { openModal(id); }
-function closeModal() { document.getElementById('overlay').classList.remove('show'); editingId = null; }
-function handleOverlayClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
-
-function submitForm() {
-  const name = document.getElementById('f-name').value.trim();
-  const price = parseFloat(document.getElementById('f-price').value);
-  if (!name) { document.getElementById('f-name').focus(); return; }
-  if (isNaN(price) || price < 0) { document.getElementById('f-price').focus(); return; }
-  const data = {
-    name: name,
-    price: price,
-    date: document.getElementById('f-date').value,
-    priority: document.getElementById('f-priority').value,
-    cat: document.getElementById('f-cat').value,
-    for: document.getElementById('f-for').value,
-    note: document.getElementById('f-note').value.trim(),
-    link: document.getElementById('f-link').value.trim(),
-  };
-  if (editingId) {
-    const w = wishes.find(x => x.id === editingId);
-    if (w) Object.assign(w, data);
-    toast('已保存 ✓');
-  } else {
-    wishes.unshift(Object.assign({ id: nextId(), done: false, createdAt: Date.now() }, data));
-    toast('已加入许愿池 🌊');
-  }
-  save(); render(); closeModal();
-}
-
-document.getElementById('filter-tabs').addEventListener('click', function(e) {
-  const btn = e.target.closest('.ftab');
-  if (!btn) return;
-  document.querySelectorAll('.ftab').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  currentFilter = btn.dataset.filter;
-  render();
-});
-
-let toastTimer;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function() { el.classList.remove('show'); }, 2000);
-}
-
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeModal();
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openModal(); }
-});
-
-load();
-render();
-</script>
-</body>
-</html>
+    os.chdir(DIRECTORY)
+    with http.server.HTTPServer(("0.0.0.0", PORT), Handler) as httpd:
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\n  服务器已停止。")
+            sys.exit(0)
